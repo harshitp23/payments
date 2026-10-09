@@ -12,7 +12,8 @@ export default function SignIn() {
     setState('sending')
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: { emailRedirectTo: window.location.origin },
+      // BASE_URL keeps the /payments/ path on GitHub Pages.
+      options: { emailRedirectTo: window.location.origin + import.meta.env.BASE_URL },
     })
     if (error) {
       setError(error.message)
