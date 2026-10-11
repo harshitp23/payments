@@ -23,10 +23,12 @@ interface Props {
   initial?: Commitment | null
   semester?: Semester | null
   trip?: Trip | null
+  /** Default repeat for a new item (e.g. 'annual' when adding a yearly subscription). */
+  recurrence?: Recurrence
   onClose: () => void
 }
 
-export default function ItemForm({ bucket: initialBucket, initial, semester, trip, onClose }: Props) {
+export default function ItemForm({ bucket: initialBucket, initial, semester, trip, recurrence: initialRecurrence, onClose }: Props) {
   const { today, run } = useStore()
   const [bucket, setBucket] = useState<Bucket>(initial?.bucket ?? initialBucket)
   const [name, setName] = useState(initial?.name ?? '')
@@ -35,7 +37,7 @@ export default function ItemForm({ bucket: initialBucket, initial, semester, tri
   const [offset, setOffset] = useState(initial && initial.offset_cents > 0 ? centsToInput(initial.offset_cents) : '')
   const [dueDate, setDueDate] = useState(initial?.due_date ?? trip?.start_date ?? today)
   const [recurrence, setRecurrence] = useState<Recurrence>(
-    initial?.recurrence ?? (initialBucket === 'subscription' ? 'monthly' : 'none'),
+    initial?.recurrence ?? initialRecurrence ?? (initialBucket === 'subscription' ? 'monthly' : 'none'),
   )
   const [anchor, setAnchor] = useState(String(initial?.anchor_day ?? parseIso(dueDate).day))
   const [anchorTouched, setAnchorTouched] = useState(
