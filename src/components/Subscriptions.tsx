@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import * as api from '../api'
 import { formatCents, formatWhole } from '../money'
 import { addDays, netCents, occurrencesBetween, totals } from '../schedule'
 import { useStore } from '../store'
@@ -8,11 +9,14 @@ import ItemRow from './ItemRow'
 import { Empty, PageHead, Section, Stat } from './ui'
 
 export default function Subscriptions() {
-  const { data, ledger, today, semester } = useStore()
+  const { data, ledger, today, semester, run } = useStore()
   const [editing, setEditing] = useState<{ initial?: Commitment; recurrence?: Recurrence } | null>(null)
 
-  const { monthly, yearly, ended, monthlyTotal, yearlyTotal, semesterCost } = useMemo(() => {
-    const subs = data.commitments.filter((c) => c.bucket === 'subscription' && !c.is_archived)
+  const { monthly, yearly, inactive, ended, monthlyTotal, yearlyTotal, semesterCost } = useMemo(() => {
+    const all = data.commitments.filter((c) => c.bucket === 'subscription')
+    const subs = all.filter((c) => !c.is_archived)
+    // Inactive = paused for now (is_archived), can be switched back on any time.
+    const inactive = all.filter((c) => c.is_archived)
     const active = subs
       .filter((c) => !c.recurrence_end || c.recurrence_end >= today)
       .map((c) => ({ c, next: occurrencesBetween(c, today, addDays(today, 400), ledger, today).slice(0, 1) }))
@@ -24,8 +28,16 @@ export default function Subscriptions() {
     const semesterCost = semester
       ? totals(subs.flatMap((c) => occurrencesBetween(c, semester.start_date, semester.end_date, ledger, today))).total
       : null
-    return { monthly, yearly, ended, monthlyTotal: sum(monthly), yearlyTotal: sum(yearly), semesterCost }
+    return { monthly, yearly, inactive, ended, monthlyTotal: sum(monthly), yearlyTotal: sum(yearly), semesterCost }
   }, [data.commitments, ledger, today, semester])
+
+  const setActive = (c: Commitment, active: boolean) =>
+    run(() => api.updateCommitment(c.id, { is_archived: !active }))
+  const pauseButton = (c: Commitment) => (
+    <button className="ghost small" onClick={() => setActive(c, false)} title="Stop counting this until you turn it back on">
+      Pause
+    </button>
+  )
 
   const addButton = (recurrence: Recurrence) => (
     <button className="add-line" onClick={() => setEditing({ recurrence })}>
@@ -51,7 +63,7 @@ export default function Subscriptions() {
         {semesterCost !== null && semester && <Stat label={`During ${semester.name}`} value={formatWhole(semesterCost)} />}
       </div>
 
-      {monthly.length === 0 && yearly.length === 0 ? (
+      {monthly.length === 0 && yearly.length === 0 && inactive.length === 0 ? (
         <Empty icon="🔁" title="No subscriptions yet">
           <p>Add Netflix, Spotify, your phone plan, gym… and see what they add up to.</p>
         </Empty>
@@ -63,7 +75,7 @@ export default function Subscriptions() {
             ) : (
               <ul className="items">
                 {monthly.map(({ c, next }) => (
-                  <ItemRow key={c.id} commitment={c} occurrences={next} onEdit={() => setEditing({ initial: c })} />
+                  <ItemRow key={c.id} commitment={c} occurrences={next} onEdit={() => setEditing({ initial: c })} actions={pauseButton(c)} />
                 ))}
               </ul>
             )}
@@ -74,12 +86,33 @@ export default function Subscriptions() {
             ) : (
               <ul className="items">
                 {yearly.map(({ c, next }) => (
-                  <ItemRow key={c.id} commitment={c} occurrences={next} onEdit={() => setEditing({ initial: c })} />
+                  <ItemRow key={c.id} commitment={c} occurrences={next} onEdit={() => setEditing({ initial: c })} actions={pauseButton(c)} />
                 ))}
               </ul>
             )}
           </Section>
         </>
+      )}
+
+      {inactive.length > 0 && (
+        <Section title="Inactive" aside="paused — not counted in your totals">
+          <ul className="items">
+            {inactive.map((c) => (
+              <ItemRow
+                key={c.id}
+                commitment={c}
+                occurrences={[]}
+                sub={`${formatCents(c.amount_cents - c.offset_cents)} ${c.recurrence === 'annual' ? 'per year' : 'per month'}`}
+                onEdit={() => setEditing({ initial: c })}
+                actions={
+                  <button className="small" onClick={() => setActive(c, true)}>
+                    Activate
+                  </button>
+                }
+              />
+            ))}
+          </ul>
+        </Section>
       )}
 
       {ended.length > 0 && (

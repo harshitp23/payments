@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import * as api from '../api'
 import { centsToInput, formatCents, parseCents } from '../money'
 import { formatDate, relativeDays, type Occurrence } from '../schedule'
@@ -54,9 +54,11 @@ interface Props {
   onEdit: () => void
   /** Extra text under the name (defaults to the schedule summary). */
   sub?: string
+  /** Extra buttons shown before the edit button. */
+  actions?: ReactNode
 }
 
-export default function ItemRow({ commitment: c, occurrences, onEdit, sub }: Props) {
+export default function ItemRow({ commitment: c, occurrences, onEdit, sub, actions }: Props) {
   const { today } = useStore()
   const [open, setOpen] = useState(false)
 
@@ -88,7 +90,9 @@ export default function ItemRow({ commitment: c, occurrences, onEdit, sub }: Pro
           )}
         </div>
         <div className="item-status">
-          {allPaid ? (
+          {c.is_archived ? (
+            <span className="pill muted">Inactive</span>
+          ) : allPaid ? (
             <span className="pill paid">{c.bucket === 'subscription' ? 'Charged' : 'Paid'}</span>
           ) : next ? (
             <span className={`pill ${next.status}`} title={formatDate(next.dueDate, today)}>
@@ -105,6 +109,7 @@ export default function ItemRow({ commitment: c, occurrences, onEdit, sub }: Pro
               {paidCount}/{occurrences.length} {open ? '▴' : '▾'}
             </button>
           )}
+          {actions}
           <button className="icon-btn" onClick={onEdit} aria-label={`Edit ${c.name}`} title="Edit">
             ✎
           </button>
