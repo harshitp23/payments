@@ -1,6 +1,6 @@
 import type { AllData } from './api'
-import { byDate, occurrencesBetween, type Occurrence } from './schedule'
-import type { Commitment, Income, IsoDate, LedgerEntry, Semester } from './types'
+import { byDate, firstOfMonth, occurrencesBetween, type Occurrence } from './schedule'
+import type { Commitment, Income, IsoDate, LedgerEntry, Paycheck, Semester } from './types'
 
 export const EARLIEST: IsoDate = '0000-01-01'
 
@@ -20,6 +20,7 @@ export interface SemesterRollup {
   trips: Occurrence[]
   estimates: Occurrence[]
   income: Income[]
+  paychecks: Paycheck[]
 }
 
 /**
@@ -27,7 +28,7 @@ export interface SemesterRollup {
  * - items linked to the semester: every occurrence up to its end date
  *   (tuition due before term starts still belongs to the term)
  * - subscriptions, trip items and estimates: occurrences inside the date range
- * - income rows for months that overlap the range
+ * - income rows and paychecks for months that overlap the range
  */
 export function semesterRollup(
   data: AllData,
@@ -35,7 +36,7 @@ export function semesterRollup(
   ledger: Map<string, LedgerEntry[]>,
   today: IsoDate,
 ): SemesterRollup {
-  const r: SemesterRollup = { college: [], stay: [], other: [], subscriptions: [], trips: [], estimates: [], income: [] }
+  const r: SemesterRollup = { college: [], stay: [], other: [], subscriptions: [], trips: [], estimates: [], income: [], paychecks: [] }
   const live = data.commitments.filter((c) => !c.is_archived)
 
   for (const c of live) {
@@ -52,6 +53,7 @@ export function semesterRollup(
   }
   const firstMonth = sem.start_date.slice(0, 8) + '01'
   r.income = data.income.filter((i) => i.month >= firstMonth && i.month <= sem.end_date)
+  r.paychecks = data.paychecks.filter((p) => p.paid_on >= firstMonth && firstOfMonth(p.paid_on) <= sem.end_date)
 
   for (const k of ['college', 'stay', 'other', 'subscriptions', 'trips', 'estimates'] as const) r[k].sort(byDate)
   return r
@@ -97,12 +99,10 @@ export const COLORS = {
   other: 'var(--c-other)',
 }
 
-export function incomeTotal(rows: Income[]): { expected: number; received: number } {
-  let expected = 0
-  let received = 0
-  for (const r of rows) {
-    expected += r.amount_cents
-    received += r.received_cents ?? 0
+/** Expected income vs. the sum of paychecks actually received. */
+export function incomeTotal(income: Income[], paychecks: Paycheck[]): { expected: number; received: number } {
+  return {
+    expected: income.reduce((s, r) => s + r.amount_cents, 0),
+    received: paychecks.reduce((s, p) => s + p.amount_cents, 0),
   }
-  return { expected, received }
 }

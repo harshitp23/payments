@@ -6,6 +6,8 @@ import type {
   IncomeInput,
   IsoDate,
   LedgerEntry,
+  Paycheck,
+  PaycheckInput,
   Semester,
   SemesterInput,
   Trip,
@@ -25,15 +27,17 @@ export interface AllData {
   commitments: Commitment[]
   ledger: LedgerEntry[]
   income: Income[]
+  paychecks: Paycheck[]
 }
 
 export async function fetchAll(): Promise<AllData> {
-  const [semesters, trips, commitments, ledger, income] = await Promise.all([
+  const [semesters, trips, commitments, ledger, income, paychecks] = await Promise.all([
     supabase.from('payments_semesters').select('*').order('start_date'),
     supabase.from('payments_trips').select('*').order('start_date'),
     supabase.from('payments_commitments').select('*').order('due_date'),
     supabase.from('payments_ledger').select('*').order('paid_on'),
     supabase.from('payments_income').select('*').order('month'),
+    supabase.from('payments_paychecks').select('*').order('paid_on'),
   ])
   return {
     semesters: check(semesters),
@@ -41,6 +45,7 @@ export async function fetchAll(): Promise<AllData> {
     commitments: check(commitments),
     ledger: check(ledger),
     income: check(income),
+    paychecks: check(paychecks),
   }
 }
 
@@ -112,4 +117,15 @@ export async function updateIncome(id: string, patch: Partial<IncomeInput>): Pro
 
 export async function deleteIncome(id: string): Promise<void> {
   check(await supabase.from('payments_income').delete().eq('id', id))
+}
+
+// Paychecks
+
+export async function savePaycheck(input: PaycheckInput, id?: string): Promise<void> {
+  const q = supabase.from('payments_paychecks')
+  check(await (id ? q.update(input).eq('id', id) : q.insert(input)))
+}
+
+export async function deletePaycheck(id: string): Promise<void> {
+  check(await supabase.from('payments_paychecks').delete().eq('id', id))
 }

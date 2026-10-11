@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import * as api from '../api'
-import { formatCents, parseCents } from '../money'
-import { monthsBetween } from '../schedule'
+import { centsToInput, formatCents, parseCents } from '../money'
+import { firstOfMonth, monthsBetween } from '../schedule'
 import { useStore } from '../store'
-import type { Semester, Trip } from '../types'
+import type { Paycheck, Semester, Trip } from '../types'
 import { Modal } from './ui'
 
 /** Suggests the next semester's name and dates from today (Spring Jan–May, Summer Jun–Jul, Fall Aug–Dec). */
@@ -171,7 +171,7 @@ export function IncomeForm({ onClose }: { onClose: () => void }) {
     e.preventDefault()
     if (invalid) return
     const src = source.trim()
-    // Keep "received" amounts already recorded for months being overwritten.
+    // Keep notes already recorded for months being overwritten.
     const existing = new Map(data.income.filter((i) => i.source === src).map((i) => [i.month, i]))
     setBusy(true)
     const ok = await run(() =>
@@ -180,7 +180,6 @@ export function IncomeForm({ onClose }: { onClose: () => void }) {
           source: src,
           month,
           amount_cents: cents!,
-          received_cents: existing.get(month)?.received_cents ?? null,
           notes: existing.get(month)?.notes ?? null,
         })),
       ),
@@ -223,6 +222,83 @@ export function IncomeForm({ onClose }: { onClose: () => void }) {
           </p>
         )}
         <FormActions busy={busy} disabled={invalid} isEdit={false} onClose={onClose} />
+      </form>
+    </Modal>
+  )
+}
+
+/** Picks a sensible default pay date for a month: today if it's this month, else the 1st. */
+function defaultPayDate(month: string, today: string): string {
+  return firstOfMonth(today) === month ? today : month
+}
+
+/** Logs (or edits) one paycheck that actually landed. */
+export function PaycheckForm({
+  month,
+  initial,
+  onClose,
+}: {
+  month: string
+  initial?: Paycheck | null
+  onClose: () => void
+}) {
+  const { data, today, run } = useStore()
+  const sources = [...new Set([...data.income.map((i) => i.source), ...data.paychecks.flatMap((p) => p.source ?? [])])]
+  const monthSources = data.income.filter((i) => i.month === month).map((i) => i.source)
+  const [source, setSource] = useState(initial ? (initial.source ?? '') : (monthSources[0] ?? sources[0] ?? ''))
+  const [amount, setAmount] = useState(initial ? centsToInput(initial.amount_cents) : '')
+  const [paidOn, setPaidOn] = useState(initial?.paid_on ?? defaultPayDate(month, today))
+  const [busy, setBusy] = useState(false)
+
+  const cents = parseCents(amount)
+  const invalid = cents === null || cents <= 0 || !paidOn
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (invalid) return
+    setBusy(true)
+    const ok = await run(() =>
+      api.savePaycheck(
+        { source: source.trim() || null, paid_on: paidOn, amount_cents: cents!, notes: initial?.notes ?? null },
+        initial?.id,
+      ),
+    )
+    setBusy(false)
+    if (ok) onClose()
+  }
+
+  async function remove() {
+    if (!initial) return
+    if (!confirm('Delete this paycheck?')) return
+    if (await run(() => api.deletePaycheck(initial.id))) onClose()
+  }
+
+  return (
+    <Modal title={initial ? 'Edit paycheck' : 'Add paycheck'} onClose={onClose}>
+      <form className="form" onSubmit={submit}>
+        <div className="field-row">
+          <label className="field">
+            <span>Amount received</span>
+            <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.00" autoFocus />
+          </label>
+          <label className="field">
+            <span>Paid on</span>
+            <input type="date" value={paidOn} onChange={(e) => setPaidOn(e.target.value)} />
+          </label>
+        </div>
+        <label className="field">
+          <span>From (optional)</span>
+          <input value={source} onChange={(e) => setSource(e.target.value)} list="paycheck-sources" placeholder="Campus job" />
+          <datalist id="paycheck-sources">
+            {sources.map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
+        </label>
+        {paidOn && firstOfMonth(paidOn) !== month && (
+          <p className="muted small">This date is in another month, so it will be counted there.</p>
+        )}
+        <FormActions busy={busy} disabled={invalid} isEdit={!!initial} onClose={onClose} onDelete={remove} />
       </form>
     </Modal>
   )

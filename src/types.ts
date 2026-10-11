@@ -1,4 +1,4 @@
-// Mirrors supabase/001_payments_schema.sql + 002_semesters_trips_income.sql
+// Mirrors supabase/001_payments_schema.sql, 002_semesters_trips_income.sql and 003_paychecks.sql
 
 export type Bucket = 'college' | 'stay' | 'subscription' | 'trip' | 'estimate' | 'other'
 export type Recurrence = 'none' | 'monthly' | 'semester' | 'annual'
@@ -85,10 +85,21 @@ export interface Income {
   source: string
   /** First day of the month, e.g. "2026-09-01". */
   month: IsoDate
+  /** What you expect to earn; money actually received is tracked as paychecks. */
   amount_cents: number
-  received_cents: number | null
   notes: string | null
   created_at: string
   updated_at: string
 }
-export type IncomeInput = Pick<Income, 'source' | 'month' | 'amount_cents' | 'received_cents' | 'notes'>
+export type IncomeInput = Pick<Income, 'source' | 'month' | 'amount_cents' | 'notes'>
+
+export interface Paycheck {
+  id: string
+  user_id: string
+  source: string | null
+  paid_on: IsoDate
+  amount_cents: number
+  notes: string | null
+  created_at: string
+}
+export type PaycheckInput = Pick<Paycheck, 'source' | 'paid_on' | 'amount_cents' | 'notes'>

@@ -56,7 +56,7 @@ export default function Overview({ go }: { go: (v: View) => void }) {
   }
   const spend = Object.values(t).reduce((s, x) => s + x.total, 0)
   const paid = Object.values(t).reduce((s, x) => s + x.paid, 0)
-  const income = incomeTotal(roll.income)
+  const income = incomeTotal(roll.income, roll.paychecks)
   const left = income.expected - spend
   const overdue = soon.filter((o) => o.status === 'overdue')
   const daysLeft = daysUntil(semester.end_date, today)
