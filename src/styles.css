@@ -1232,3 +1232,43 @@ textarea {
     margin-left: 0;
   }
 }
+
+/* Money coming back */
+.incoming-line {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  padding: 0.6rem 0;
+}
+.incoming-line:first-child {
+  border-top: 0;
+}
+.incoming-line input[type='checkbox'] {
+  width: 1.2rem;
+  height: 1.2rem;
+  accent-color: var(--good);
+  cursor: pointer;
+}
+.incoming-body {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.incoming-body:focus-visible {
+  outline: 2px solid var(--accent);
+  border-radius: 6px;
+}
+.incoming-line.done .item-title {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.incoming-line.done .received-amount {
+  opacity: 0.6;
+}
+.item-sub.late {
+  color: var(--warn);
+}

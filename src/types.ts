@@ -1,4 +1,4 @@
-// Mirrors supabase/001_payments_schema.sql through 004_friends.sql
+// Mirrors supabase/001_payments_schema.sql through 005_incoming.sql
 
 export type Bucket = 'college' | 'stay' | 'subscription' | 'trip' | 'estimate' | 'other'
 export type Recurrence = 'none' | 'monthly' | 'semester' | 'annual'
@@ -137,3 +137,19 @@ export type SplitInput = Pick<
   Split,
   'friend_id' | 'kind' | 'paid_by' | 'description' | 'occurred_on' | 'amount_cents' | 'total_cents' | 'group_id'
 >
+
+// supabase/005_incoming.sql
+
+/** A refund, return or transfer you're waiting on. */
+export interface Incoming {
+  id: string
+  user_id: string
+  description: string
+  source: string | null
+  amount_cents: number
+  expected_on: IsoDate | null
+  /** Null until you tick it off. */
+  received_on: IsoDate | null
+  created_at: string
+}
+export type IncomingInput = Pick<Incoming, 'description' | 'source' | 'amount_cents' | 'expected_on' | 'received_on'>

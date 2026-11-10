@@ -3,6 +3,8 @@ import type {
   Commitment,
   CommitmentInput,
   Friend,
+  Incoming,
+  IncomingInput,
   Income,
   IncomeInput,
   IsoDate,
@@ -39,10 +41,11 @@ export interface AllData {
   paychecks: Paycheck[]
   friends: Friend[]
   splits: Split[]
+  incoming: Incoming[]
 }
 
 export async function fetchAll(): Promise<AllData> {
-  const [semesters, trips, commitments, ledger, income, paychecks, friends, splits] = await Promise.all([
+  const [semesters, trips, commitments, ledger, income, paychecks, friends, splits, incoming] = await Promise.all([
     supabase.from('payments_semesters').select('*').order('start_date'),
     supabase.from('payments_trips').select('*').order('start_date'),
     supabase.from('payments_commitments').select('*').order('due_date'),
@@ -51,6 +54,7 @@ export async function fetchAll(): Promise<AllData> {
     supabase.from('payments_paychecks').select('*').order('paid_on'),
     supabase.from('payments_friends').select('*').order('name'),
     supabase.from('payments_splits').select('*').order('occurred_on'),
+    supabase.from('payments_incoming').select('*').order('created_at'),
   ])
   return {
     semesters: check(semesters),
@@ -61,6 +65,7 @@ export async function fetchAll(): Promise<AllData> {
     paychecks: check(paychecks),
     friends: optional(friends),
     splits: optional(splits),
+    incoming: optional(incoming),
   }
 }
 
@@ -170,4 +175,18 @@ export async function updateSplit(id: string, patch: Partial<SplitInput>): Promi
 
 export async function deleteSplit(id: string): Promise<void> {
   check(await supabase.from('payments_splits').delete().eq('id', id))
+}
+
+// Money coming back (refunds, returns, transfers)
+
+export async function addIncoming(input: IncomingInput): Promise<void> {
+  check(await supabase.from('payments_incoming').insert(input))
+}
+
+export async function updateIncoming(id: string, patch: Partial<IncomingInput>): Promise<void> {
+  check(await supabase.from('payments_incoming').update(patch).eq('id', id))
+}
+
+export async function deleteIncoming(id: string): Promise<void> {
+  check(await supabase.from('payments_incoming').delete().eq('id', id))
 }
