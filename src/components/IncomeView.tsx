@@ -7,7 +7,6 @@ import { useStore } from '../store'
 import type { Income, Paycheck } from '../types'
 import { IncomeForm, PaycheckForm } from './forms'
 import { PageHead, Stat } from './ui'
-import IncomingSection from './Incoming'
 
 export default function IncomeView() {
   const { data, today, semester } = useStore()
@@ -40,7 +39,7 @@ export default function IncomeView() {
     <>
       <PageHead
         title="Income"
-        subtitle="What you expect to earn each month, the paychecks that came in, and refunds or transfers you're waiting on."
+        subtitle="What you expect to earn each month, and the paychecks that actually came in."
         action={
           <button className="primary" onClick={() => setAdding(true)}>
             + Expected income
@@ -66,10 +65,6 @@ export default function IncomeView() {
           value={formatWhole(tot.received)}
           tone="good"
           sub={`${checks.length} paycheck${checks.length === 1 ? '' : 's'}`}
-        />
-        <Stat
-          label="Average paycheck"
-          value={formatWhole(checks.length ? tot.received / checks.length : 0)}
         />
       </div>
 
@@ -141,8 +136,6 @@ export default function IncomeView() {
         <span className="swatch" style={{ background: 'var(--c-income-soft)' }} /> expected
         <span className="swatch" style={{ background: 'var(--c-income)' }} /> received · click a month to add paychecks
       </p>
-
-      <IncomingSection />
 
       {adding && <IncomeForm onClose={() => setAdding(false)} />}
       {paycheck && <PaycheckForm month={paycheck.month} initial={paycheck.initial} onClose={() => setPaycheck(null)} />}
