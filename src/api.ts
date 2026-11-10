@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import type {
   Commitment,
   CommitmentInput,
+  Friend,
   Income,
   IncomeInput,
   IsoDate,
@@ -10,6 +11,8 @@ import type {
   PaycheckInput,
   Semester,
   SemesterInput,
+  Split,
+  SplitInput,
   Trip,
   TripInput,
 } from './types'
@@ -21,6 +24,12 @@ function check<T>(res: { data: T | null; error: { message: string } | null }): T
   return res.data as T
 }
 
+/** Like check, but a table that doesn't exist yet (migration not run) reads as empty. */
+function optional<T>(res: { data: T[] | null; error: { message: string; code?: string } | null }): T[] {
+  if (res.error && (res.error.code === 'PGRST205' || res.error.code === '42P01')) return []
+  return check(res)
+}
+
 export interface AllData {
   semesters: Semester[]
   trips: Trip[]
@@ -28,16 +37,20 @@ export interface AllData {
   ledger: LedgerEntry[]
   income: Income[]
   paychecks: Paycheck[]
+  friends: Friend[]
+  splits: Split[]
 }
 
 export async function fetchAll(): Promise<AllData> {
-  const [semesters, trips, commitments, ledger, income, paychecks] = await Promise.all([
+  const [semesters, trips, commitments, ledger, income, paychecks, friends, splits] = await Promise.all([
     supabase.from('payments_semesters').select('*').order('start_date'),
     supabase.from('payments_trips').select('*').order('start_date'),
     supabase.from('payments_commitments').select('*').order('due_date'),
     supabase.from('payments_ledger').select('*').order('paid_on'),
     supabase.from('payments_income').select('*').order('month'),
     supabase.from('payments_paychecks').select('*').order('paid_on'),
+    supabase.from('payments_friends').select('*').order('name'),
+    supabase.from('payments_splits').select('*').order('occurred_on'),
   ])
   return {
     semesters: check(semesters),
@@ -46,6 +59,8 @@ export async function fetchAll(): Promise<AllData> {
     ledger: check(ledger),
     income: check(income),
     paychecks: check(paychecks),
+    friends: optional(friends),
+    splits: optional(splits),
   }
 }
 
@@ -128,4 +143,31 @@ export async function savePaycheck(input: PaycheckInput, id?: string): Promise<v
 
 export async function deletePaycheck(id: string): Promise<void> {
   check(await supabase.from('payments_paychecks').delete().eq('id', id))
+}
+
+// Friends & splits
+
+export async function addFriend(name: string): Promise<Friend> {
+  return check(await supabase.from('payments_friends').insert({ name }).select().single())
+}
+
+export async function renameFriend(id: string, name: string): Promise<void> {
+  check(await supabase.from('payments_friends').update({ name }).eq('id', id))
+}
+
+/** Also deletes the friend's whole history (on delete cascade). */
+export async function deleteFriend(id: string): Promise<void> {
+  check(await supabase.from('payments_friends').delete().eq('id', id))
+}
+
+export async function addSplits(rows: SplitInput[]): Promise<void> {
+  if (rows.length) check(await supabase.from('payments_splits').insert(rows))
+}
+
+export async function updateSplit(id: string, patch: Partial<SplitInput>): Promise<void> {
+  check(await supabase.from('payments_splits').update(patch).eq('id', id))
+}
+
+export async function deleteSplit(id: string): Promise<void> {
+  check(await supabase.from('payments_splits').delete().eq('id', id))
 }

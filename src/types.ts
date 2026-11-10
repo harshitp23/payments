@@ -1,4 +1,4 @@
-// Mirrors supabase/001_payments_schema.sql, 002_semesters_trips_income.sql and 003_paychecks.sql
+// Mirrors supabase/001_payments_schema.sql through 004_friends.sql
 
 export type Bucket = 'college' | 'stay' | 'subscription' | 'trip' | 'estimate' | 'other'
 export type Recurrence = 'none' | 'monthly' | 'semester' | 'annual'
@@ -103,3 +103,37 @@ export interface Paycheck {
   created_at: string
 }
 export type PaycheckInput = Pick<Paycheck, 'source' | 'paid_on' | 'amount_cents' | 'notes'>
+
+// supabase/004_friends.sql
+
+export interface Friend {
+  id: string
+  user_id: string
+  name: string
+  created_at: string
+}
+
+export type SplitKind = 'expense' | 'payment'
+export type PaidBy = 'me' | 'friend'
+
+/** One change to your balance with one friend. */
+export interface Split {
+  id: string
+  user_id: string
+  friend_id: string
+  kind: SplitKind
+  paid_by: PaidBy
+  description: string
+  occurred_on: IsoDate
+  /** For an expense: the non-payer's share. For a payment: the amount handed over. */
+  amount_cents: number
+  /** Whole bill for an expense, for context. */
+  total_cents: number | null
+  /** Rows created from the same expense share this. */
+  group_id: string | null
+  created_at: string
+}
+export type SplitInput = Pick<
+  Split,
+  'friend_id' | 'kind' | 'paid_by' | 'description' | 'occurred_on' | 'amount_cents' | 'total_cents' | 'group_id'
+>
