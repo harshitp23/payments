@@ -11,9 +11,10 @@ import Subscriptions from './Subscriptions'
 import Plans from './Plans'
 import IncomeView from './IncomeView'
 import Friends from './Friends'
+import IncomingView from './Incoming'
 import { SemesterForm } from './forms'
 
-export type View = 'overview' | 'semester' | 'subscriptions' | 'plans' | 'income' | 'friends'
+export type View = 'overview' | 'semester' | 'subscriptions' | 'plans' | 'income' | 'refunds' | 'friends'
 
 const NAV: { id: View; icon: string; label: string }[] = [
   { id: 'overview', icon: '📊', label: 'Overview' },
@@ -21,6 +22,7 @@ const NAV: { id: View; icon: string; label: string }[] = [
   { id: 'subscriptions', icon: '🔁', label: 'Subscriptions' },
   { id: 'plans', icon: '✈️', label: 'Plans' },
   { id: 'income', icon: '💼', label: 'Income' },
+  { id: 'refunds', icon: '↩️', label: 'Refunds' },
   { id: 'friends', icon: '🤝', label: 'Friends' },
 ]
 
@@ -159,6 +161,7 @@ export default function Dashboard({ session }: { session: Session }) {
               {view === 'subscriptions' && <Subscriptions />}
               {view === 'plans' && <Plans />}
               {view === 'income' && <IncomeView />}
+              {view === 'refunds' && <IncomingView />}
               {view === 'friends' && <Friends />}
               {newSemester && <SemesterForm onClose={() => setNewSemester(false)} />}
             </StoreContext.Provider>

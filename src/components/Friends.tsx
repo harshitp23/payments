@@ -6,7 +6,6 @@ import { formatDate } from '../schedule'
 import { useStore } from '../store'
 import type { Friend, PaidBy, Split } from '../types'
 import { Empty, Modal, PageHead, Section, Stat } from './ui'
-import IncomingSection from './Incoming'
 
 export default function Friends() {
   const { data, today, run } = useStore()
@@ -139,8 +138,6 @@ export default function Friends() {
           </p>
         </Section>
       )}
-
-      <IncomingSection />
 
       {expense && <ExpenseForm friendId={expense.friendId} onClose={() => setExpense(null)} />}
       {settling && <SettleForm summary={settling} onClose={() => setSettling(null)} />}

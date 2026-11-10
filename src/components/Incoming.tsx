@@ -4,10 +4,10 @@ import { centsToInput, formatCents, parseCents } from '../money'
 import { formatDate, relativeDays } from '../schedule'
 import { useStore } from '../store'
 import type { Incoming } from '../types'
-import { Modal, Section } from './ui'
+import { Modal, PageHead, Section, Stat } from './ui'
 
 /** Refunds, returns and transfers you're waiting on; tick each off when it lands. */
-export default function IncomingSection() {
+export default function IncomingView() {
   const { data, today, run } = useStore()
   const [editing, setEditing] = useState<{ initial?: Incoming } | null>(null)
   const [showReceived, setShowReceived] = useState(false)
@@ -50,15 +50,27 @@ export default function IncomingSection() {
   }
 
   return (
-    <Section
-      title="Money coming back"
-      aside={pending.length ? `${formatCents(pendingTotal)} still to come` : undefined}
-      action={
-        <button className="add-line" onClick={() => setEditing({})}>
-          + Add refund / transfer
-        </button>
-      }
-    >
+    <>
+      <PageHead
+        title="Refunds & transfers"
+        subtitle="Returns, refunds and transfers you're waiting on. Tick each one off when the money lands."
+        action={
+          <button className="primary" onClick={() => setEditing({})}>
+            + Add refund / transfer
+          </button>
+        }
+      />
+
+      <div className="stats">
+        <Stat
+          label="Total to come"
+          value={formatCents(pendingTotal)}
+          tone="good"
+          sub={`${pending.length} pending`}
+        />
+      </div>
+
+    <Section title="Waiting on">
       {pending.length === 0 ? (
         <p className="muted small">
           Nothing pending. Add returns, refunds, deposits or transfers you're waiting on — tick them off when they arrive.
@@ -74,8 +86,9 @@ export default function IncomingSection() {
           {showReceived && <ul className="items">{received.map(line)}</ul>}
         </>
       )}
-      {editing && <IncomingForm initial={editing.initial} onClose={() => setEditing(null)} />}
     </Section>
+      {editing && <IncomingForm initial={editing.initial} onClose={() => setEditing(null)} />}
+    </>
   )
 }
 
